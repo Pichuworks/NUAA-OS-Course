@@ -3,8 +3,10 @@
 #include <string.h>  
 #include <unistd.h>  
 #include <errno.h>
+#include "sys/types.h"
 
 int system(const char* cmdstring) {
+
     pid_t pid;
     int status;
 
@@ -29,10 +31,10 @@ int system(const char* cmdstring) {
         // 主进程
         while(waitpid(pid, &status, 0) < 0) {
             // 执行成功？
-            if(errno != EINTER) {
-                status = -1;
-                break;
-            }
+        //    if(errno != EINTER) {
+          //      status = -1;
+            //    break;
+            // }
         }
     }
     return status;
@@ -47,14 +49,14 @@ int main(int argc, char** argv) {
     char cmdstring[255];
     strcpy(cmdstring, argv[1]);
     for(int i=2; i<argc; i++) {
-        strcat(str, " ");
-        strcat(str, argv[i]);
+        strcat(cmdstring, " ");
+        strcat(cmdstring, argv[i]);
     }
 
     int status = system(cmdstring);
 
     // debug
-    printf("\n------------\nStatus: %d", status);
+    printf("\n------------\nStatus: %d\n\n", status);
 
     return 0;
 }
