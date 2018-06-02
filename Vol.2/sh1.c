@@ -11,52 +11,34 @@
 #define ARRAYX 255
 #define ARRAYY 10
 
-void analyCMD(char src[], char dest[ARRAYX][ARRAYY]) {
+char** analyCMD(char src[]) {
+	
+	char** dest = NULL;
 	char *fuckyou = src;
+	dest = (char**) malloc(10 * sizeof(char*));
 	char *result = NULL;
 	char fuckspace[] = " ";
-	char *copy = malloc(10*sizeof(char));
 	result = strtok(fuckyou, fuckspace);
 	int i = 0; 
 	while(result != NULL) {
+		dest[i] = (char*) malloc(255 * sizeof(char));
 		strcpy(dest[i], result);
 		result = strtok(NULL, fuckspace);  
 		i++;
 	}
+	dest[i] = NULL;
 	
-	/*
-	i = 0; 
-	while(dest[i][0] != '\0') {
-		printf("argv[%d] = %s\n",i ,dest[i]);
-		if(strcmp(dest[i], "echo") == 0) {
-			printf("is echo!\n");
-		}
-		i++;
-	}
-	*/
-	
-	return;
+	return dest;
 }
 
-int execCMD(char cmd[ARRAYX][ARRAYY]) {
-	
-	/*
-	int i = 0;
-	while(cmd[i][0] != '\0') {
-		printf("argv[%d] = %s\n",i ,cmd[i]);
-		if(strcmp(cmd[i], "echo") == 0) {
-			printf("is echo!\n");
-		}
-		i++;
-	}
-	*/
+int execCMD(char** cmd) {
 	
 	if(strcmp(cmd[0], "echo") == 0) {
 		int pid = fork();
 		if(pid == 0) {
 			int i = 0;
 			int is = 0;
-			for(i = 1; cmd[i][0]!='\0'; i++) {
+			for(i = 1; cmd[i] != NULL; i++) {
 				if(cmd[i][0] == '>') {
 					is = 1;
 					break;
@@ -74,7 +56,7 @@ int execCMD(char cmd[ARRAYX][ARRAYY]) {
 			}
 			else {
 				int j = 0;
-				for(j = 1; cmd[j][0] != '\0'; j++) {
+				for(j = 1; cmd[j] != NULL; j++) {
 					printf("%s", cmd[j]);
 					printf(" ");
 				}
@@ -90,12 +72,7 @@ int execCMD(char cmd[ARRAYX][ARRAYY]) {
 	else if(strcmp(cmd[0], "ls") == 0) {
 		int pid = fork();
 		if(pid == 0) {
-			if(cmd[1][0] == '\0') {
-				execlp("/bin/ls", "ls", "./", NULL, NULL, NULL);
-			}
-			else {
-				execlp("/bin/ls", "ls", cmd[1], NULL, NULL, NULL);
-			}
+			execvp("/bin/ls", cmd);
 		}
 		else {
 			int status;
@@ -106,12 +83,20 @@ int execCMD(char cmd[ARRAYX][ARRAYY]) {
 	else if(strcmp(cmd[0], "ll") == 0) {
 		int pid = fork();
 		if(pid == 0) {
-			if(cmd[1][0] == '\0') {
-				execlp("/bin/ls", "ls", "-l", "./", NULL, NULL, NULL);
+			char** ll = (char**) malloc(11 * sizeof(char*));
+			ll[0] = "ls";
+			ll[1] = "-l";
+			ll[2] = NULL;
+			int i = 1;
+			int j = 2;
+			while(cmd[i] != NULL) {
+				ll[j] = (char*) malloc(255 * sizeof(char));
+				strcpy(ll[j], cmd[i]);
+				i++;
+				j++;
 			}
-			else {
-				execlp("/bin/ls", "ls", "-l", cmd[1], NULL, NULL, NULL);
-			}
+			ll[j] = NULL;
+			execvp("/bin/ls", ll);
 		}
 		else {
 			int status;
@@ -126,7 +111,12 @@ int execCMD(char cmd[ARRAYX][ARRAYY]) {
 	else if(strcmp(cmd[0], "pwd") == 0) {
 		int pid = fork();
 		if(pid == 0) {
-			system("pwd");
+			char pwd[255];
+			if(!getcwd(pwd, 255)){  
+		        perror("getcwd");  
+		        return 1;  
+		    }  
+    		printf("%s\n", pwd);  
 		}
 		else {
 			int status;
@@ -138,27 +128,43 @@ int execCMD(char cmd[ARRAYX][ARRAYY]) {
 		return -1;
 	}
 	
+	else if(strcmp(cmd[0], "cat") == 0) {
+		int pid = fork();
+		if(pid == 0) {
+			execvp("cat", cmd);
+		}
+		else {
+			int status;
+			wait(&status);
+			printf("\n");
+		}
+	} 
+	
 	return 1;
 	
 }
 
 int main(int argc, char** argv) {
+	
 	system("clear");
+	
 	while(1) {
 		char command[LENGTH];
-		char splitArray[ARRAYX][ARRAYY] = {{'\0'}};
+
+		char **splitArray = NULL;
 		
 		char *file_path_getcwd;
-		file_path_getcwd=(char *)malloc(255);
+		file_path_getcwd = (char *) malloc(255);
 		getcwd(file_path_getcwd,255);
 				
 		printf("[pichu@Cinnamon* %s]$ ", file_path_getcwd);
 		
 		gets(command);
-		analyCMD(command, splitArray);
-		int i = 0;
+		splitArray = analyCMD(command);
+
 		if(execCMD(splitArray) == -1) {
 			return 0;
 		}
 	}
+	
 }
