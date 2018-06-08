@@ -59,7 +59,8 @@ void merge(int* mainArr, int* subArr, int* resArr) {
 	int i = 0;	// main
 	int j = 0;	// sub
 	int k = 0;	// res
-	while(i < mainN || j < subN) {
+	
+	while(i < mainN && j < subN) {
 		if(mainArr[i] < subArr[j]) {
 			resArr[k] = mainArr[i];
 			k++;
@@ -71,6 +72,7 @@ void merge(int* mainArr, int* subArr, int* resArr) {
 			j++;
 		}
 	}
+	
 	while(i < mainN) {
 		resArr[k] = mainArr[i];
 		k++;
@@ -82,7 +84,7 @@ void merge(int* mainArr, int* subArr, int* resArr) {
 		k++;
 		j++;
 	}
-	
+
 	return;
 
 }
