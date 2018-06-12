@@ -20,11 +20,11 @@ pthread_cond_t wait_full_buf1;
 pthread_cond_t wait_full_buf2;
 
 int isBuf1Empty() {
-    return buf1_in = buf1_out;
+    return buf1_in == buf1_out;
 }
 
 int isBuf2Empty() {
-    return buf2_in = buf2_out;
+    return buf2_in == buf2_out;
 }
 
 int isBuf1Full() {
@@ -68,11 +68,10 @@ void* producer() {
        while(isBuf1Full()) {
            pthread_cond_wait(&wait_empty_buf1, &mutex);
        }
-
+        
         item = 'a' + i;
-        printf("[producer] %c\n", item);
+        // printf("[producer] %c\n", item);
         putItem1(item);
-
         pthread_cond_signal(&wait_full_buf1);
         pthread_mutex_unlock(&mutex);
    }
@@ -88,7 +87,8 @@ void* computer() {
         }
 
         item = getItem1();
-        printf("[computer] get %c\n", item);
+        
+        // printf("[computer] get %c\n", item);
         item -= 32;
 
         pthread_cond_signal(&wait_empty_buf1);
@@ -102,7 +102,7 @@ void* computer() {
         }
 
         putItem2(item);
-        printf("[computer] put %c\n", item);
+        // printf("[computer] put %c\n", item);
 
         pthread_cond_signal(&wait_full_buf2);
         pthread_mutex_unlock(&mutey);
@@ -142,17 +142,15 @@ int main() {
     pthread_cond_init(&wait_full_buf1, NULL);
     pthread_cond_init(&wait_full_buf2, NULL);
 
-    // printf("[mainThread] Create Producer\n");
-    // pthread_create(&prod_tid, NULL, producer, NULL);
     printf("[mainThread] Create Computer\n");
     pthread_create(&comp_tid, NULL, computer, NULL);
     printf("[mainThread] Create Customer\n");
     pthread_create(&cust_tid, NULL, customer, NULL);
     producer();
-
-    // pthread_join(prod_tid, NULL);
-    // pthread_join(comp_tid, NULL);
-    // pthread_join(cust_tid, NULL);
+    
+    
+    pthread_join(comp_tid, NULL);
+    pthread_join(cust_tid, NULL);
 
     return 0;
 }
