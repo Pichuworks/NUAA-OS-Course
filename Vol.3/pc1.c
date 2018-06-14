@@ -67,14 +67,14 @@ void* producer() {
        pthread_mutex_lock(&mutex);
        while(isBuf1Full()) {
            pthread_cond_wait(&wait_empty_buf1, &mutex);
-       }
+        }
         
         item = 'a' + i;
         // printf("[producer] %c\n", item);
         putItem1(item);
         pthread_cond_signal(&wait_full_buf1);
         pthread_mutex_unlock(&mutex);
-   }
+    }
 }
 
 void* computer() {
@@ -106,7 +106,7 @@ void* computer() {
 
         pthread_cond_signal(&wait_full_buf2);
         pthread_mutex_unlock(&mutey);
-   }
+    }
 
 }
 
