@@ -16,10 +16,12 @@ void* subThread(void* arg) {
 
 int main() {
     pthread_t pid[N];
-    int* result;
-    *result = 1;
+    int* result = malloc(sizeof(int));
+    *result = 0;
+    
     pthread_create(&pid[0], NULL, subThread, result);
     pthread_join(pid[0], (void*) &result);
+    
     int i = 0;
     while(i < N) {
         printf("from Thread #%d ", i+1);
@@ -29,5 +31,6 @@ int main() {
 		pthread_join(pid[i], (void*) &result);
         sleep(1);
     }
+    
     return 0;
 }
