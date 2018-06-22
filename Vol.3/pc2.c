@@ -34,10 +34,11 @@ void semaInit(semaphore* sema, int value) {
 
 void semaWait(semaphore* sema) {
     pthread_mutex_lock(&sema->mutex);
-    sema->value--;
-    while(sema->value < 0) {
+    
+    while(sema->value <= 0) {
         pthread_cond_wait(&sema->cond, &sema->mutex);
     }
+    sema->value--;
     pthread_mutex_unlock(&sema->mutex);
 }
 
@@ -119,8 +120,7 @@ void* computer() {
         semaWait(&mutex1_sema);
 
         item = getItem1();
-        item -= 32;
-
+        
         semaSignal(&mutex1_sema);
         semaSignal(&empty_buf1_sema);
         
@@ -131,6 +131,7 @@ void* computer() {
         semaWait(&empty_buf2_sema);
         semaWait(&mutex2_sema);
 
+        item -= 32;
         putItem2(item);
 
         semaSignal(&mutex2_sema);
@@ -151,11 +152,10 @@ void* customer() {
         semaWait(&mutex2_sema);
 
         item = getItem2();
-        
+        printf("[customer] %c\n", item);
+
         semaSignal(&mutex2_sema);
         semaSignal(&empty_buf2_sema);
-
-        printf("[customer] %c\n", item);
     }
 }
 
@@ -165,6 +165,7 @@ int main() {
 
     pthread_t comp_tid;
     pthread_t cust_tid;
+    pthread_t proc_tid;
 
     semaInit(&mutex1_sema, 1);
     semaInit(&mutex2_sema, 1);
@@ -173,15 +174,13 @@ int main() {
     semaInit(&full_buf1_sema, 0);
     semaInit(&full_buf2_sema, 0);
 
-    // printf("[mainThread] Create Computer\n");
-    pthread_create(&comp_tid, NULL, computer, NULL);
-    // printf("[mainThread] Create Customer\n");
     pthread_create(&cust_tid, NULL, customer, NULL);
-    producer();
-    
-    
-    pthread_join(comp_tid, NULL);
+    pthread_create(&proc_tid, NULL, producer, NULL);
+    pthread_create(&comp_tid, NULL, computer, NULL);
+      
     pthread_join(cust_tid, NULL);
+    pthread_join(proc_tid, NULL);
+    pthread_join(comp_tid, NULL);
 
     return 0;
 }
