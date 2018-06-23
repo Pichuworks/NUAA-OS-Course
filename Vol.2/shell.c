@@ -84,10 +84,20 @@ int buildinCMD(char **argv) {
 
     if(strcmp(argv[0],"cd") == 0) {
         if(chdir(argv[1])) {
-            printf("-bash: no such directory\n");
+            printf("-shell: no such directory\n");
         }
         return 1;
     }
+
+    if(strcmp(argv[0],"version") == 0) {
+        printf("-shell: version\n");
+        printf("-shell: Shell Version 3.01\n");
+        printf("-shell: Professional Workstation Edition\n");
+        printf("-shell: Developed by PichuTheNeko\n");
+        printf("-shell: Date: Jun. 23rd, '18\n");
+        return 1;
+    }
+
     return 0;
 }
 
@@ -107,29 +117,93 @@ void eval(char *cmdstring) {
     int pid = fork();
     if(pid == 0) {
 
-        // 沙雕重定向！！！
+        // 沙雕 > 重定向！！！
         int i = 0;
         char** tmpcmd = (char**) malloc(sizeof(char*) * global_argc); 
         int tcmdp = 0;  // tmp cmd pointer
         int fd[LENGTH] = {0};
-        int recur = 0;
-        
+        int recur = -1;
         int sfd = dup(STDOUT_FILENO);
 
+        // 沙雕 < 重定向！！！
+        int openfd[LENGTH] = {0};
+        int open_recur = -1;
+
+        // 沙雕管道！！！
+        int forkfd[2];
+
         // printf("[eval] global_argc = %d\n", global_argc);
+
+        if(strcmp(argv[0], "ll") == 0) {
+            tmpcmd[0] = "ls";
+            tmpcmd[1] = "-l";
+            i++;
+            tcmdp += 2;
+        }
 
         while(argv[i] != '\0') {
             // printf("[eval] argv[%d] = %s\n", i, argv[i]);
             if(strcmp(argv[i], ">") == 0) {
                 if(strcmp(argv[i+1], ">") == 0) {
-                    printf("-bash: syntax error near unexpected token '>'\n");
+                    printf("-shell: syntax error near unexpected token '>'\n");
                     return;
                 }
                 // 打开后面的文件
-                fd[recur] = open(argv[i+1], O_CREAT|O_RDWR, 0755);
                 recur++;
+                fd[recur] = open(argv[i+1], O_CREAT|O_RDWR|O_TRUNC, 0755);
+                
                 i+=2;
             }
+            else if(strcmp(argv[i], "<") == 0) {
+                if(strcmp(argv[i+1], "<") == 0) {
+                    printf("-shell: syntax error near unexpected token '<'\n");
+                    return;
+                }
+                // 打开后面的文件
+                open_recur++;
+                openfd[open_recur] = open(argv[i+1], O_RDONLY);
+                dup2(openfd[open_recur], 0); 
+                i+=2;
+            }
+            // 沙雕管道
+            else if(strcmp(argv[i], "|") == 0) {
+                pipe(forkfd); 
+                int fuckpipepid = fork();
+
+                if(fuckpipepid == 0) {
+                    tmpcmd[tcmdp] = NULL;
+
+                    // Debug
+                    /*
+                    printf("[shell] pipe forked, now processing command: ");
+                    for(int ii = 0; ii < tcmdp; ii++) {
+                        printf("%s ", tmpcmd[ii]);
+                    }
+                    printf("\n");
+                    */
+
+                    dup2(forkfd[1], 1); 
+                    close(forkfd[0]);
+                    close(forkfd[1]);
+
+                    execvp(tmpcmd[0], tmpcmd);
+
+                    // printf("[shell] pipe closed\n");
+
+                    exit(0);
+                }
+                else {
+                    wait(&fuckpipepid);
+                    // printf("[shell] pipe fucked!\n");
+                    dup2(forkfd[0], 0); 
+                    close(forkfd[0]);
+                    close(forkfd[1]);
+                    i++;
+                    tcmdp = 0;
+                    continue;
+                }
+            }
+            // new end
             else {
                 tmpcmd[tcmdp] = (char*) malloc(sizeof(char) * LENGTH);
                 strcpy(tmpcmd[tcmdp], argv[i]);
@@ -139,15 +213,30 @@ void eval(char *cmdstring) {
         }
         tmpcmd[tcmdp] = NULL;
 
-        recur--;    // 多加了一个=。=
-
-        if(recur != 0) {
+        // recur--;    // 多加了一个=。=
+        // open_recur--;
+/*
+        if(open_recur != -1) {
+            dup2(openfd[open_recur], 0); // 重定向输入
+        }
+*/
+        if(recur != -1) {
             dup2(fd[recur], 1); // 重定向输出
         }
 
+        // Debug
+        /*
+        printf("[shell] main process, now processing command: ");
+        for(int ii = 0; ii < tcmdp; ii++) {
+            printf("%s ", tmpcmd[ii]);
+        }
+        printf("\n");
+        printf("[shell] open_recur = %d, recur = %d\n", open_recur, recur);
+        */
+
         if(execvp(tmpcmd[0], tmpcmd) < 0) {
             dup2(sfd, STDOUT_FILENO);
-            printf("-bash: %s: command not found\n", argv[0]);
+            printf("-shell: %s: command not found\n", argv[0]);
             return;
         }
 
@@ -155,7 +244,14 @@ void eval(char *cmdstring) {
             close(fd[recur]);
             recur--;
         }
+
+        while(open_recur > 0) {
+            close(openfd[open_recur]);
+            open_recur--;
+        }
+
         close(fd[0]);
+        close(openfd[0]);
 
         dup2(sfd, STDOUT_FILENO);   // 恢复输出
     }
@@ -173,7 +269,7 @@ int main(int argc,char *argv[]) {
         printf("[pichu@Cinnamon* %s]$ ", file_path_getcwd);
         fflush(stdout);
         if((n = read(0, cmdstring, 512)) < 0) {
-            printf("-bash: read error\n");
+            printf("-shell: read error\n");
             continue;
         }
         eval(cmdstring);
